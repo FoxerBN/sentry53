@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+PLAN.md
+bin/
+dist/
+coverage.out
+*.test
