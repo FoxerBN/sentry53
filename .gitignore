@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 PLAN.md
+TUTORIAL.md
 bin/
 dist/
 coverage.out
