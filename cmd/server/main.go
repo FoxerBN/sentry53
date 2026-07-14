@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"sentry53/internal/blocklist"
+	"sentry53/internal/resolver"
 	"sentry53/internal/server"
 )
 
@@ -14,8 +15,9 @@ func main() {
 	}
 	log.Printf("loaded %d blocked domains", blocked.Len())
 
-	dnsServer := server.New(blocked)
-	if err := dnsServer.ListenAndServe("127.0.0.1:1053"); err != nil {
+	upstream := resolver.New("1.1.1.1:53")
+	dnsServer := server.New(blocked, upstream)
+	if err := dnsServer.ListenAndServe("192.168.1.174:53"); err != nil {
 		log.Fatal(err)
 	}
 }

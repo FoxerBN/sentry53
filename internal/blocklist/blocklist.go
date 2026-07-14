@@ -34,8 +34,18 @@ func Load(path string) (*Blocklist, error) {
 }
 
 func (b *Blocklist) IsBlocked(domain string) bool {
-	_, found := b.domains[normalize(domain)]
-	return found
+	domain = normalize(domain)
+	for domain != "" {
+		if _, found := b.domains[domain]; found {
+			return true
+		}
+		i := strings.Index(domain, ".")
+		if i < 0 {
+			break
+		}
+		domain = domain[i+1:]
+	}
+	return false
 }
 
 func (b *Blocklist) Len() int {
