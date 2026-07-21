@@ -5,19 +5,21 @@ import (
 
 	"github.com/miekg/dns"
 	"sentry53/internal/blocklist"
+	"sentry53/internal/cache"
 	"sentry53/internal/resolver"
 )
 
 // * Server represents a DNS server that uses a blocklist to filter requests. It contains a pointer to a Blocklist instance.
 type Server struct {
 	blocklist *blocklist.Blocklist
+	cache     *cache.Cache
 	resolver  *resolver.Resolver
 }
 
-// * New creates a new Server instance with the provided blocklist. It returns a pointer to the Server.
-func New(blocked *blocklist.Blocklist, upstream *resolver.Resolver) *Server {
+func New(blocked *blocklist.Blocklist, responses *cache.Cache, upstream *resolver.Resolver) *Server {
 	return &Server{
 		blocklist: blocked,
+		cache:     responses,
 		resolver:  upstream,
 	}
 }
@@ -32,19 +34,30 @@ func (s *Server) ServeDNS(w dns.ResponseWriter, request *dns.Msg) {
 		return
 	}
 
-	// * Blocked domains are answered locally with NXDOMAIN.
-	if s.blocklist.IsBlocked(request.Question[0].Name) {
+	question := request.Question[0]
+	if s.blocklist.IsBlocked(question.Name) {
 		response := new(dns.Msg)
 		response.SetRcode(request, dns.RcodeNameError)
 		_ = w.WriteMsg(response)
 		return
 	}
+	if s.cache != nil {
+		if response := s.cache.Get(question); response != nil {
+			response.Id = request.Id
+			_ = w.WriteMsg(response)
+			return
+		}
+	}
 
-	// * Allowed domains are forwarded upstream; a failure becomes SERVFAIL.
 	response, err := s.resolver.Resolve(request)
 	if err != nil {
 		response = new(dns.Msg)
 		response.SetRcode(request, dns.RcodeServerFailure)
+		_ = w.WriteMsg(response)
+		return
+	}
+	if s.cache != nil {
+		s.cache.Set(question, response)
 	}
 	_ = w.WriteMsg(response)
 }

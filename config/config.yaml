@@ -1,1 +1,28 @@
-# This file will contain upstream DNS, listener ports, and path configuration.
+# Runtime configuration for sentry53.
+# Durations use Go duration syntax: "500ms", "5s", "10m", "24h".
+
+server:
+  # Use "127.0.0.1:1053" for unprivileged local development.
+  listen_address: "127.0.0.1:1053"
+
+blocklist:
+  path: "blocklists/blocked_domains.txt"
+
+resolver:
+  # Ordered: the next upstream is used only after a transport-level failure.
+  upstreams:
+    - "1.1.1.1:53"
+    - "1.0.0.1:53"
+  timeout: "3s"
+  # Retry the same upstream via TCP if its UDP response is truncated.
+  tcp_fallback_on_truncation: true
+
+cache:
+  enabled: true
+  # Maximum number of cached DNS question/response pairs.
+  max_entries: 10000
+  # Responses below min_ttl are not cached; max_ttl caps cache retention.
+  min_ttl: "30s"
+  max_ttl: "24h"
+  # Remove expired entries that are not reached by lazy cleanup.
+  cleanup_interval: "5m"
