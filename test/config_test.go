@@ -1,13 +1,15 @@
-package config
+package test
 
 import (
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"sentry53/internal/config"
 )
 
-func TestLoad(t *testing.T) {
+func TestLoadConfig(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	contents := []byte(`server:
   listen_address: "127.0.0.1:1053"
@@ -28,19 +30,19 @@ cache:
 		t.Fatal(err)
 	}
 
-	config, err := Load(path)
+	appConfig, err := config.Load(path)
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if config.Resolver.Timeout != 2*time.Second {
-		t.Fatalf("timeout = %s, want 2s", config.Resolver.Timeout)
+	if appConfig.Resolver.Timeout != 2*time.Second {
+		t.Fatalf("timeout = %s, want 2s", appConfig.Resolver.Timeout)
 	}
-	if !config.Resolver.TCPFallback || config.Cache.MaxEntries != 10 {
-		t.Fatalf("unexpected config: %#v", config)
+	if !appConfig.Resolver.TCPFallback || appConfig.Cache.MaxEntries != 10 {
+		t.Fatalf("unexpected config: %#v", appConfig)
 	}
 }
 
-func TestLoadRejectsInvalidCacheRange(t *testing.T) {
+func TestLoadConfigRejectsInvalidCacheRange(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config.yaml")
 	contents := []byte(`server:
   listen_address: "127.0.0.1:1053"
@@ -59,7 +61,7 @@ cache:
 	if err := os.WriteFile(path, contents, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Load(path); err == nil {
+	if _, err := config.Load(path); err == nil {
 		t.Fatal("Load() succeeded for an invalid cache TTL range")
 	}
 }
